@@ -56,13 +56,10 @@ RUN \
     # https://github.com/phusion/baseimage-docker#enabling-ssh
     # Baseimage-docker disables the SSH server by default. Add the following to your Dockerfile to enable it:
     rm -f /etc/service/sshd/down; \
-    rm -f /etc/my_init.d/00_regen_ssh_host_keys.sh; \
     # Generate host keys
-    dpkg-reconfigure openssh-server; \
+    /etc/my_init.d/00_regen_ssh_host_keys.sh; \
     (umask 0077; mkdir /var/sshd_host_keys; mkdir -p /root/.ssh); \
     cp -pt /var/sshd_host_keys/ /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub;
-    ## Generate root key pair
-    ##ssh-keygen -t rsa -m PEM -N '' -C "root@$(hostname)" -f /root/.ssh/id_rsa
 
 RUN \
     --mount=type=cache,target=/var/cache/apt \
@@ -89,14 +86,6 @@ RUN \
         rsync \
         gosu
 
-# https://github.com/phusion/baseimage-docker/pull/84/files \
-# RUN \
-#    . /saldrc.lib.sh; \
-#    groupadd --gid=16080 sal-docker-env; \
-#    chown :sal-docker-env /etc/container_environment.sh /etc/container_environment.json; \
-#    chmod 640 /etc/container_environment.sh /etc/container_environment.json; \
-#    ln -s /etc/container_environment.sh /etc/profile.d/;
-#
 
 # Python
 RUN \
