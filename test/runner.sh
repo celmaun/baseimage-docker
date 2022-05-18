@@ -28,7 +28,7 @@ trap cleanup EXIT
 
 echo " --> Enabling SSH in the container"
 docker exec $ID /etc/my_init.d/00_regen_ssh_host_keys.sh -f
-docker exec $ID rm /etc/service/sshd/down
+docker exec $ID rm -f /etc/service/sshd/down
 docker exec $ID sv start /etc/service/sshd
 sleep 1
 
