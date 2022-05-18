@@ -1,11 +1,11 @@
-VERSION ?= focal-1.0.0-pre
+VERSION ?= jammy-1.0.0
 ifdef BASE_IMAGE
 	BUILD_ARG = --build-arg BASE_IMAGE=$(BASE_IMAGE)
 	ifndef NAME
-		NAME = phusion/baseimage-$(subst :,-,${BASE_IMAGE})
+		NAME = salmatron/baseimage-$(subst :,-,${BASE_IMAGE})
 	endif
 else
-	NAME ?= phusion/baseimage
+	NAME ?= salmatron/baseimage
 endif
 ifdef TAG_ARCH
 	# VERSION_ARG = $(VERSION)-$(subst /,-,$(subst :,-,${BASE_IMAGE}))-$(TAG_ARCH)
@@ -17,6 +17,8 @@ else
 	LATEST_VERSION = latest
 endif
 VERSION_ARG ?= $(VERSION)
+
+PLATFORM ?= linux/amd64
 
 .PHONY: all build test tag_latest release ssh
 
