@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# vim:set ft=bash ts=2 sw=2 et :
+# shellcheck shell=bash
+
+set -euo pipefail
+shopt -s nullglob
+
+# shellcheck source=./.salprojectrc
+${SABA__SOURCED- . "$(dirname "$(readlink -e -- "${BASH_SOURCE[0]}")")"/.salprojectrc}
+
+cd "$SABA__ROOT"
+
+set -x
+
+git remote add upstream "git@github.com:phusion/baseimage-docker.git"

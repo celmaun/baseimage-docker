@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# vim:set ft=bash ts=2 sw=2 et :
+# shellcheck shell=bash
+
+set -euo pipefail
+shopt -s nullglob
+
+# shellcheck source=./.salprojectrc
+${SABA__SOURCED- . "$(dirname "$(readlink -e -- "${BASH_SOURCE[0]}")")"/.salprojectrc}
+
+cd "$SABA__ROOT"
+
+set -x
+
+false || exit
+
+# e.g.:
+# jammy-1.0.0
+version="{1-}"
+
+( : "${version?}"; ) || exit
+
+make build
+
+git tag "$version"
+git push
+
+make tag_latest
+make release

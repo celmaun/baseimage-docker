@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# vim:set ft=bash ts=2 sw=2 et :
+# shellcheck shell=bash
+
+${SABA__SOURCED+ return 0}
+
+export SABA__SOURCED=true
+
+: "$(readlink -e -- "${BASH_SOURCE[0]}")" || exit
+SABA__ROOT="$(dirname "$(dirname "$_")")"
+
+cd -P "$SABA__ROOT" || exit
+
+export SABA__ROOT=$PWD
+
+: "$SABA__ROOT/bin" && \
+case ":$PATH:" in *":$_:"*) ;; *) PATH="${_}${PATH+:$PATH}" ;; esac; export PATH
+
+cd ~- || exit
+
+
+
+

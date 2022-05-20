@@ -45,10 +45,10 @@ RUN \
     . /saldrc.lib.sh; \
     # saldrc__validate_build_args; \
     saldrc__apt_setup; \
-    mkdir -p /var/cache/pip/; \
-    chmod -R a+rX /var/cache/pip/; \
-    mkdir -p /salb-cache/; \
-    chmod -R a+rwX /salb-cache/;
+    mkdir -p "$PIP_CACHE_DIR"; \
+    chmod -R a+rX "$PIP_CACHE_DIR"; \
+    mkdir -p /saba-cache/; \
+    chmod -R a+rwX /saba-cache/;
 
 RUN \
     . /saldrc.lib.sh; \
@@ -64,11 +64,12 @@ RUN \
 RUN \
     --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
-    --mount=type=cache,target=/salb-cache,mode=0777 \
+    --mount=type=cache,target=/saba-cache,mode=0777 \
     . /saldrc.lib.sh; \
     saldrc__apt_install \
         vim \
         git \
+        git-lfs \
         logrotate \
         cron \
         ssh-client \
@@ -84,18 +85,17 @@ RUN \
         fontconfig \
         iproute2 \
         rsync \
-        gosu
-
+        gosu \
+    	socat
 
 # Python
 RUN \
     --mount=type=cache,target=/var/cache/apt \
     --mount=type=cache,target=/var/lib/apt/lists \
     --mount=type=cache,target=/var/cache/pip \
-    --mount=type=cache,target=/salb-cache,mode=0777 \
+    --mount=type=cache,target=/saba-cache,mode=0777 \
     . /saldrc.lib.sh; \
-    saldrc__apt_install python3 python3-pip file; \
-    # `file` is optional dependency for ranger-fm \
+    saldrc__apt_install python3 python3-pip; \
     \
 	# Ensure pip, setuptools, and wheel are up to date \
 	# While pip alone is sufficient to install from pre-built binary archives, up to date copies of the setuptools and wheel projects are
@@ -138,12 +138,15 @@ RUN \
 	# * `python` or `jq` for JSON files
 	# * `fontimage` for font previews
 	# * `openscad` for 3D model previews (`stl`, `off`, `dxf`, `scad`, `csg`)
-    pip3 --no-input install -U ranger-fm pygments chardet python-bidi
+	# ----
+	# Note by Salman: Best syntax highlighting package is 'bat'
+	apt-get -y install file bat mediainfo libimage-exiftool-perl jq; \
+    pip3 --no-input install -U ranger-fm chardet pygments python-bidi
 
 
 
-# ARG SAL__DEPLOY_ENV
-# ENV SAL__DEPLOY_ENV=$SAL__DEPLOY_ENV
+# ARG SAL__ENV
+# ENV SAL__ENV=$SAL__ENV
 
 # ARG SAL__UID__ADMIN=1000
 # ENV SAL__UID__ADMIN=$SAL__UID__ADMIN
@@ -151,8 +154,8 @@ RUN \
 # ARG SAL__USER__ADMIN=salmatron
 # ENV SAL__USER__ADMIN=$SAL__USER__ADMIN
 #
-# ARG SALB__PREFIX=/opt/salb
-# ENV SALB__PREFIX=$SALB__PREFIX
+# ARG SABA__PREFIX=/opt/saba
+# ENV SABA__PREFIX=$SABA__PREFIX
 #
 
 # Generate root key pair
@@ -171,7 +174,7 @@ RUN \
 #    # Enable password-less sudo
 #    printf '\n%s %s\n' "$SAL__USER__ADMIN" 'ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers; \
 #    # Create the prefix directory
-#    mkdir -p $SALB__PREFIX; \
-#    touch "$SALB__PREFIX/.gitkeep"; \
-#    chown -R "$SAL__UID__ADMIN:$SAL__UID__ADMIN" "$SALB__PREFIX"; \
-#    chmod -R a+rX "$SALB__PREFIX";
+#    mkdir -p $SABA__PREFIX; \
+#    touch "$SABA__PREFIX/.gitkeep"; \
+#    chown -R "$SAL__UID__ADMIN:$SAL__UID__ADMIN" "$SABA__PREFIX"; \
+#    chmod -R a+rX "$SABA__PREFIX";
