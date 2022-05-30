@@ -88,6 +88,7 @@ RUN \
         gosu \
     	socat
 
+
 # Python
 RUN \
     --mount=type=cache,target=/var/cache/apt \
@@ -96,16 +97,13 @@ RUN \
     --mount=type=cache,target=/saba-cache,mode=0777 \
     . /saldrc.lib.sh; \
     saldrc__apt_install python3 python3-pip; \
-    \
 	# Ensure pip, setuptools, and wheel are up to date \
 	# While pip alone is sufficient to install from pre-built binary archives, up to date copies of the setuptools and wheel projects are
 	# useful to ensure you can also install from source archives:
 	pip3 --no-input install -U pip setuptools wheel; \
-    \
     # Install 'requests' library
     # https://pypi.org/project/requests/
     pip3 --no-input install -U requests; \
-    \
     # Install ranger file manager and its suggestions
     # https://github.com/ranger/ranger
 	# ranger is a console file manager with VI key bindings.  It provides a
@@ -140,7 +138,7 @@ RUN \
 	# * `openscad` for 3D model previews (`stl`, `off`, `dxf`, `scad`, `csg`)
 	# ----
 	# Note by Salman: Best syntax highlighting package is 'bat'
-	apt-get -y install file bat mediainfo libimage-exiftool-perl jq; \
+	saldrc__apt_install file bat mediainfo libimage-exiftool-perl; \
     pip3 --no-input install -U ranger-fm chardet pygments python-bidi
 
 
