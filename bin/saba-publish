@@ -12,33 +12,45 @@ cd "$SABA__ROOT"
 
 set -x
 
-#[salmatron@saltr]$ sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' ./Makefile; echo $?
-#sal-jammy-5.0.0
-#0
+# [salmatron@saltr]$ sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' ./Makefile; echo $?
+# sal-jammy-5.0.0
+# 0
 
 
-VERSION="$(sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
+# VERSION="$(sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
 
-: "${VERSION:?}"
-export VERSION
+# VERSION="$(git show HEAD:Makefile | sed -n '/VERSION\s\+?=\s*sal-\S\+\s*/{ s/VERSION\s\+?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170')"
+
+# git show HEAD:Makefile
+# This gets the contents of the _committed_ Makefile file from the Git repo
+
+# sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170'
+# Finds the `VERSION ?= sal-jammy-X.X.X` line and outputs the version string. Exits with code '170' if not found until the last line.
 
 
-if [ -n "$(git tag -l "$VERSION")" ]; then
-	>&2 printf '%s\n' "Error: Git already has the tag '$VERSION'"
+if [ -n "$(git status --porcelain Makefile)" ]; then
+	>&2 printf '%s\n' "Error: Makefile has uncommitted changes"
 	exit 1
 fi
 
 
-printf '%s\n' "The new VERSION is '$VERSION'"
+VERSION="$(sed -n '/VERSION\s\+?=\s*sal-\S\+\s*/{ s/VERSION\s\+?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
 
+: "${VERSION:?}"
+export VERSION
+
+if [ -n "$(git tag -l "$VERSION")" ]; then
+	>&2 printf '%s\n' "Error: Git already has the tag '$VERSION'."
+	exit 1
+fi
+
+printf '%s\n' "The new VERSION is '$VERSION', starting docker build and publish process..."
 
 git tag "$VERSION"
-
 
 make VERSION="$VERSION" build
 make VERSION="$VERSION" tag_latest
 make VERSION="$VERSION" release
-
 
 git push
 
