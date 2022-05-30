@@ -1,4 +1,4 @@
-VERSION ?= jammy-1.0.0
+VERSION ?= sal-jammy-5.0.0
 ifdef BASE_IMAGE
 	BUILD_ARG = --build-arg BASE_IMAGE=$(BASE_IMAGE)
 	ifndef NAME

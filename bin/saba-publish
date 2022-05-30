@@ -12,18 +12,33 @@ cd "$SABA__ROOT"
 
 set -x
 
-false || exit
+#[salmatron@saltr]$ sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' ./Makefile; echo $?
+#sal-jammy-5.0.0
+#0
 
-# e.g.:
-# jammy-1.0.0
-version="{1-}"
 
-( : "${version?}"; ) || exit
+VERSION="$(sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
 
-make build
+: "${VERSION:?}"
+export VERSION
 
-git tag "$version"
+
+if [ -n "$(git tag -l "$VERSION")" ]; then
+	>&2 printf '%s\n' "Error: Git already has the tag '$VERSION'"
+	exit 1
+fi
+
+
+printf '%s\n' "The new VERSION is '$VERSION'"
+
+
+git tag "$VERSION"
+
+
+make VERSION="$VERSION" build
+make VERSION="$VERSION" tag_latest
+make VERSION="$VERSION" release
+
+
 git push
 
-make tag_latest
-make release
