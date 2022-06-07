@@ -1,4 +1,4 @@
-VERSION ?= sal-jammy-5.0.3
+VERSION ?= sal-jammy-5.0.4
 ifdef BASE_IMAGE
 	BUILD_ARG = --build-arg BASE_IMAGE=$(BASE_IMAGE)
 	ifndef NAME
@@ -41,7 +41,8 @@ tag_multiarch_latest:
 
 release: test
 	@if ! docker images $(NAME) | awk '{ print $$2 }' | grep -q -F $(VERSION_ARG); then echo "$(NAME) version $(VERSION_ARG) is not yet built. Please run 'make build'"; false; fi
-	docker push --all-tags $(NAME)
+	docker push $(NAME):$(VERSION_ARG)
+	docker push $(NAME)
 	@echo "*** Don't forget to create a tag by creating an official GitHub release."
 
 ssh: SSH_COMMAND?=
