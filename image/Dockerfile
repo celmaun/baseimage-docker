@@ -89,7 +89,7 @@ RUN \
         rsync \
         gosu \
     	socat
-/
+
 # Python
 RUN \
     --mount=type=cache,target=/var/cache/apt \

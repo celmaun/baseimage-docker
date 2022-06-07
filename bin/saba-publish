@@ -46,11 +46,11 @@ fi
 
 printf '%s\n' "The new VERSION is '$VERSION', starting docker build and publish process..."
 
-git tag "$VERSION"
-
 make VERSION="$VERSION" build
 make VERSION="$VERSION" tag_latest
 make VERSION="$VERSION" release
+
+git tag "$VERSION"
 
 git push
 
