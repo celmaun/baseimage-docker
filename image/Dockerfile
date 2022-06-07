@@ -17,7 +17,9 @@ ENV TZ="UTC" \
     DEBIAN_FRONTEND="teletype" \
     LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
-    LC_ALL="en_US.UTF-8"
+    LC_ALL="en_US.UTF-8" \
+    EDITOR="/usr/bin/vim"
+
 
 # SSH
 EXPOSE 22
@@ -87,8 +89,7 @@ RUN \
         rsync \
         gosu \
     	socat
-
-
+/
 # Python
 RUN \
     --mount=type=cache,target=/var/cache/apt \
@@ -141,38 +142,3 @@ RUN \
 	saldrc__apt_install file bat mediainfo libimage-exiftool-perl; \
     pip3 --no-input install -U ranger-fm chardet pygments python-bidi
 
-
-
-# ARG SAL__ENV
-# ENV SAL__ENV=$SAL__ENV
-
-# ARG SAL__UID__ADMIN=1000
-# ENV SAL__UID__ADMIN=$SAL__UID__ADMIN
-#
-# ARG SAL__USER__ADMIN=salmatron
-# ENV SAL__USER__ADMIN=$SAL__USER__ADMIN
-#
-# ARG SABA__PREFIX=/opt/saba
-# ENV SABA__PREFIX=$SABA__PREFIX
-#
-
-# Generate root key pair
-# RUN \
-#    . /saldrc.lib.sh; \
-#    # Generate root key pair
-#    ssh-keygen -t rsa -m PEM -N '' -C "root@$(hostname)" -f /root/.ssh/id_rsa
-
-
-# RUN \
-#    . /saldrc.lib.sh; \
-#    # `docker_env` is a group created by phusion baseimage for providing acccess to container_environment.sh
-#    useradd --uid "$SAL__UID__ADMIN" --create-home --user-group --shell /bin/bash --groups "adm,sudo,docker_env" "$SAL__USER__ADMIN"; \
-#    # Set a random password to fully activate the account
-#    printf '%s:%s\n' "$SAL__USER__ADMIN" "$(xxd -plain -len 20 /dev/urandom)" | chpasswd; \
-#    # Enable password-less sudo
-#    printf '\n%s %s\n' "$SAL__USER__ADMIN" 'ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers; \
-#    # Create the prefix directory
-#    mkdir -p $SABA__PREFIX; \
-#    touch "$SABA__PREFIX/.gitkeep"; \
-#    chown -R "$SAL__UID__ADMIN:$SAL__UID__ADMIN" "$SABA__PREFIX"; \
-#    chmod -R a+rX "$SABA__PREFIX";

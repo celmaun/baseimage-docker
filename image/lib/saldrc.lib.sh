@@ -64,6 +64,17 @@ saldrc__apt_install() {
 }
 
 
+saldrc__apt_file_update_maybe() {
+  # shellcheck disable=SC2227
+  if [ -n "$( 2>/dev/null find -L /var/cache/apt/apt-file -maxdepth 0 -mtime -7 \! -empty -print -quit ||: )" ]; then
+    return
+  fi
+
+  # Cache is older than 7 days
+  >&2 printf '%s\n' "Refreshing apt-file cache..."
+  apt-file update
+}
+
 # 1 = sha256 hash
 # 2 = file path
 saldrc__sha256_require() (
