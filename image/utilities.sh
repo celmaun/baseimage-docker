@@ -11,7 +11,11 @@ if [ "${BUILT_IMAGE_SIZE:?}" = "thin" ]; then
 	$minimal_apt_get_install vim-tiny
 	ln -s /usr/bin/vim.tiny /usr/bin/vim
 else
-	apt-get install -y vim vim-{asciidoc,editorconfig,scripts,snipmate,snippets,syntastic}
+	apt-get install -y vim
+
+	# apt-get install -y vim vim-{asciidoc,editorconfig,scripts,snipmate,snippets,syntastic}
+	# TODO: Add needed repo to install above extras
+
 	# vim-asciidoc/focal 9.0.0~rc1-1 all
 	#  Vim syntax highlighting files for asciidoc
 	# ---
@@ -31,11 +35,9 @@ else
 	#  Syntax checking hacks for vim
 
 	test -e /usr/bin/vim || ln -s /usr/bin/vim.basic /usr/bin/vim
-
 fi
 
 update-alternatives --install /usr/bin/editor editor /usr/bin/vim 100
-
 
 ## This tool runs a command as another user and sets $HOME.
 cp /bd_build/bin/setuser /sbin/setuser
