@@ -8,13 +8,14 @@ COPY . /bd_build
 
 COPY lib/saldrc.lib.sh /
 
+ENV TZ="UTC"
+
 RUN /bd_build/prepare.sh && \
 	/bd_build/system_services.sh && \
 	/bd_build/utilities.sh && \
 	/bd_build/cleanup.sh
 
-ENV TZ="UTC" \
-    DEBIAN_FRONTEND="teletype" \
+ENV DEBIAN_FRONTEND="teletype" \
     LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
     LC_ALL="en_US.UTF-8" \
