@@ -8,7 +8,7 @@ set -x
 ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=594189
 export INITRD=no
 mkdir -p /etc/container_environment
-echo -n no > /etc/container_environment/INITRD
+printf %s no > /etc/container_environment/INITRD
 
 ## Enable Ubuntu Universe, Multiverse, and deb-src for main.
 sed -i 's/^#\s*\(deb.*main restricted\)$/\1/g' /etc/apt/sources.list
@@ -53,5 +53,5 @@ case $(lsb_release -is) in
 esac
 locale-gen en_US
 update-locale LANG=en_US.UTF-8 LC_CTYPE=en_US.UTF-8
-echo -n en_US.UTF-8 > /etc/container_environment/LANG
-echo -n en_US.UTF-8 > /etc/container_environment/LC_CTYPE
+printf %s en_US.UTF-8 > /etc/container_environment/LANG
+printf %s en_US.UTF-8 > /etc/container_environment/LC_CTYPE
