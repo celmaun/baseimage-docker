@@ -52,5 +52,6 @@ make VERSION="$VERSION" release
 
 git tag "$VERSION"
 
-git push
+# `--follow-tags` is required to push the new tag
+git push --follow-tags
 
