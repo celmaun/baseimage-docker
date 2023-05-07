@@ -6,7 +6,10 @@ ${SABA__SOURCED+ return 0}
 
 export SABA__SOURCED=true
 
-: "$(readlink -e -- "${BASH_SOURCE[0]}")" || exit
+export GREADLINK=readlink
+case $OSTYPE in darwin*) GREADLINK=greadlink;; esac
+
+: "$($GREADLINK -e -- "${BASH_SOURCE[0]}")" || exit
 SABA__ROOT="$(dirname "$(dirname "$_")")"
 
 cd -P "$SABA__ROOT" || exit
