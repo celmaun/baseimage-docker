@@ -13,7 +13,7 @@ ${SABA__SOURCED- . "$(dirname "$($GREADLINK -e -- "${BASH_SOURCE[0]}")")"/.salpr
 
 cd "$SABA__ROOT"
 
-set -x
+#set -x
 
 # [salmatron@saltr]$ sed -n '/VERSION\s*?=\s*sal-/{ s/VERSION ?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' ./Makefile; echo $?
 # sal-jammy-5.0.0
@@ -37,10 +37,22 @@ if [ -n "$(git status --porcelain Makefile)" ]; then
 fi
 
 
-VERSION="$(sed -n '/VERSION\s\+?=\s*sal-\S\+\s*/{ s/VERSION\s\+?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
+#VERSION="$(sed -n '/VERSION\s\+?=\s*sal-\S\+\s*/{ s/VERSION\s\+?=\s*\(sal-\S\+\)\s*/\1/p; q; }; $q170' Makefile)"
+
+VERSION="$(sed -n '/^ *VERSION *\?= *sal-/ { s/.*\(sal-.*\) */\1/p; q; }' Makefile)"
+
 
 : "${VERSION:?}"
 export VERSION
+
+# export PLATFORM
+
+# if [ -z "$PLATFORM" ]; then 
+#   PLATFORM="linux/amd64"
+# fi
+
+# case ":$CPUTYPE:$HOSTTYPE:" in *:arm64:*) PLATFORM="linux/arm64";; esac
+
 
 if [ -n "$(git tag -l "$VERSION")" ]; then
 	>&2 printf '%s\n' "Error: Git already has the tag '$VERSION'."
@@ -49,7 +61,7 @@ fi
 
 printf '%s\n' "The new VERSION is '$VERSION', starting docker build and publish process..."
 
-make VERSION="$VERSION" build
+make VERSION="$VERSION" PLATFORM="linux/arm64,linux/amd64" build
 make VERSION="$VERSION" tag_latest
 make VERSION="$VERSION" release
 

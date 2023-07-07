@@ -15,11 +15,11 @@ function cleanup()
 }
 
 echo " --> Starting insecure container"
-ID=`docker run -d -p 22 $NAME:$VERSION /sbin/my_init --enable-insecure-key`
+ID="$(docker run -d -p 22 "$NAME:$VERSION" /sbin/my_init --enable-insecure-key)"
 sleep 1
 
 echo " --> Obtaining SSH port number"
-SSHPORT=`docker inspect --format='{{(index (index .NetworkSettings.Ports "22/tcp") 0).HostPort}}' "$ID"`
+SSHPORT=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "22/tcp") 0).HostPort}}' "$ID")
 if [[ "$SSHPORT" = "" ]]; then
 	abort "Unable to obtain container SSH port number"
 fi
