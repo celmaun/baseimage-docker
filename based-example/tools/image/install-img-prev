@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# vim:set ft=bash ts=2 sw=2 et :
+
+set -euxo pipefail
+shopt -s nullglob
+
+mkdir -p /etc/my_init.d
+
+cd /image
+
+cp -rt /etc/my_init.d ./my_init.d/*
+
+#adminHome="$(eval "echo ~$SAL__USER__ADMIN")"
+
+: "$(getent passwd "$SAL__UID__ADMIN" | cut -d: -f6)"
+export adminHome=$_
+
+gosu "$SAL__USER__ADMIN" ssh-keygen -t rsa -m PEM -N '' -C "$SAL__USER__ADMIN@lensify-backend" -f "$SAL__HOME__ADMIN/.ssh/id_rsa"
+
+#  (
+#    umask 0077;
+##    echo "$SAL__SSH_KEY_PUB" >> /root/.ssh/authorized_keys;
+##    echo "$SAL__SSH_KEY_PUB" >> "$adminHome/.ssh/authorized_keys";
+##    chown "$SAL__UID__ADMIN:$SAL__UID__ADMIN" "$adminHome/.ssh/authorized_keys";
+#  )
+
+{
+  echo
+  echo "Include /etc/ssh/sshd_config.d/*.conf"
+  echo
+} >> /etc/ssh/sshd_config
+
+install -m 0600 ./conf/sshd/001-sal.conf /etc/ssh/sshd_config.d/
+
+cp -aRt /etc/service/ ./etc/service/*

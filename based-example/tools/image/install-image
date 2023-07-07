@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# vim:set ft=bash ts=2 sw=2 et :
+
+set -euxo pipefail
+shopt -s failglob
+
+# If set, patterns which fail to match filenames during pathname expansion result in an expansion error.
+
+
+SAL__USER__PHP_FPM="$(id -un "$SAL__UID__PHP_FPM")"
+export SAL__USER__PHP_FPM
+
+mkdir -p /etc/my_init.d
+
+mkdir -p /shared
+
+chown -cR "$SAL__USER__ADMIN:$SAL__USER__ADMIN" /shared
+
+
+
+cd /image
+
+cp -rt /etc/my_init.d ./etc/my_init.d/*
+
+
+gosu "$SAL__USER__ADMIN" ssh-keygen -t rsa -m PEM -N '' -C "${SAL__USER__ADMIN}@${SAL__CO_HOSTNAME:?}" -f "$SAL__HOME__ADMIN/.ssh/id_rsa"
+
+
+printf '\n\n%s\n\n' "Include /etc/ssh/sshd_config.d/*.conf" >> /etc/ssh/sshd_config
+
+install -m 0600 ./etc/ssh/sshd_config.d/001-sal.conf /etc/ssh/sshd_config.d/
+
+
+
+# NGINX
+
+cp -art /etc/service/ ./etc/service/*
+
+cp -at /etc/nginx/ ./etc/nginx/{nginx,sal__snippet_fastcgi-php}.conf
+
+cp -at /etc/nginx/conf.d/ ./etc/nginx/conf.d/*.conf
+
+sed -i "s@__SAL__NGINX_DEFAULT_HOST__@${SAL__CO_HOSTNAME:?}@g" /etc/nginx/conf.d/*.conf
+sed -i "s@__SAL__WEB_PUBLIC_ROOT__@${SAL__WEB_PUBLIC_ROOT:?}@g" /etc/nginx/conf.d/*.conf
+
+
+SAL__USER__WEB="$(id -un "$SAL__UID__WEB")"
+export SAL__USER__WEB
+
+mkdir -p "${SAL__WEB_PUBLIC_ROOT:?}"
+
+find "$SAL__WEB_PUBLIC_ROOT" \! -user "$SAL__USER__WEB" -print0 | xargs -rt -0 chown -c "$SAL__USER__WEB:" --
+
+find "/var/log/nginx" \! -user "$SAL__USER__WEB" -print0 | xargs -rt -0 chown -c "$SAL__USER__WEB:" --
+
+
+# PHP-FPM
+
+cp -at /etc/php/8.1/fpm/ ./etc/php-fpm/php-fpm.conf
+
+sed -i "s@__SAL__PHP_FPM_PID__FILE__@${SAL__PHP_FPM_PID__FILE:?}@g" /etc/php/8.1/fpm/php-fpm.conf
+
+cp -at /etc/php/8.1/fpm/pool.d/ ./etc/php-fpm/pool.d/*.conf
+
+sed -i "s@__SAL__USER__PHP_FPM__@${SAL__USER__PHP_FPM:?}@g" /etc/php/8.1/fpm/pool.d/*.conf
+sed -i "s@__SAL__WEB_PUBLIC_ROOT__@${SAL__WEB_PUBLIC_ROOT:?}@g" /etc/php/8.1/fpm/pool.d/*.conf
+
+
+sed -i 's@log/php[0-9]\+\.[0-9]\+-fpm.log@log/php-fpm/error.log@' /etc/logrotate.d/php8.1-fpm
+
+#mkdir -p /run/php/
+
+mkdir "$(dirname "$SAL__PHP_FPM_PID__FILE")"
+
+
+# Start MariaDB daemon
+sal-mysqld &
+_mydPid=$!
+
+# Wait for MariaDB init
+until mysqladmin ping --silent >/dev/null 2>&1; do
+  if kill -0 "$_mydPid" >/dev/null 2>&1; then :;
+  else
+    # Start MariaDB daemon
+    sal-mysqld &
+    _mydPid=$!
+  fi
+
+  sleep 1
+done
+
+unset _mydPid
+
+export _sqlCreateRootUser="FLUSH PRIVILEGES; ALTER USER 'root'@'localhost' IDENTIFIED BY '${SAL__MYSQL_ROOT_PWD:?}'; FLUSH PRIVILEGES;"
+
+printf %s\\n---\\n "Ensure SQL root user has a password and is equal to env var '\$SAL__MYSQL_ROOT_PWD'..."
+
+if MYSQL_PWD="$RANDOM" mysql --user=root -se 'SELECT 1;' >/dev/null 2>&1; then
+   mysql --user=root -ve "$_sqlCreateRootUser"
+# If root password is not "$SAL__MYSQL_ROOT_PWD"
+elif MYSQL_PWD="$SAL__MYSQL_ROOT_PWD" mysql --user=root -se 'SELECT 1;' >/dev/null 2>&1; then :;
+else
+   mysql --user=root -ve "$_sqlCreateRootUser"
+fi
+
+unset _sqlCreateRootUser
+
+# Backtick
+export e='`'
+
+printf %s\\n---\\n "Ensure WP DB exists..."
+
+if MYSQL_PWD="$SAL__MYSQL_ROOT_PWD" mysql --user=root -se 'SELECT 1;' "$WORDPRESS__DB_NAME" >/dev/null 2>&1; then :;
+else
+  MYSQL_PWD="$SAL__MYSQL_ROOT_PWD" mysql --user=root -ve "CREATE DATABASE ${e}$WORDPRESS__DB_NAME${e} CHARACTER SET ${e}$WORDPRESS__DB_CHARSET${e} COLLATE ${e}$WORDPRESS__DB_COLLATE${e};";
+fi
+
+printf %s\\n---\\n "Ensure WP user exists..."
+
+if MYSQL_PWD="$WORDPRESS__DB_PASSWORD" mysql --user="$WORDPRESS__DB_USER" -se 'SHOW TABLES;' "$WORDPRESS__DB_NAME" >/dev/null 2>&1; then
+  printf %s\\n "Database already exists!"
+else
+  printf %s\\n "Database is missing, creating now!"
+  MYSQL_PWD="$SAL__MYSQL_ROOT_PWD" mysql --user=root -ve "GRANT ALL ON ${e}$WORDPRESS__DB_NAME${e}.* TO '$WORDPRESS__DB_USER'@'%' IDENTIFIED BY '$WORDPRESS__DB_PASSWORD'; FLUSH PRIVILEGES;";
+fi
+
+unset e
+
+MYSQL_PWD="$SAL__MYSQL_ROOT_PWD" /usr/bin/mariadb-admin shutdown
+
+ln -s /usr/local/bin/lewp-backup-db /etc/cron.daily/
+
+
+
