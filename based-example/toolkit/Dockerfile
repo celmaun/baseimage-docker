@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.5-labs
 # vim:set ts=2 sw=2 ft=dockerfile :
 FROM salmatron/baseimage:sal-jammy-5.0.5
 
