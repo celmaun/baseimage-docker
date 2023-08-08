@@ -65,8 +65,8 @@ RUN \
     cp -pt /var/sshd_host_keys/ /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub;
 
 RUN \
-    --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     --mount=type=cache,target=/saba-cache,mode=0777 \
     . /saldrc.lib.sh; \
     saldrc__apt_install \
@@ -93,9 +93,9 @@ RUN \
 
 # Python
 RUN \
-    --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
-    --mount=type=cache,target=/var/cache/pip \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/var/cache/pip,sharing=locked \
     --mount=type=cache,target=/saba-cache,mode=0777 \
     . /saldrc.lib.sh; \
     saldrc__apt_install python3 python3-pip; \
