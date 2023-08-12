@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-source /bd_build/buildconfig
+. /bd_build/buildconfig
 set -x
 
 ## Prevent initramfs updates from trying to run grub and lilo.
