@@ -5,11 +5,11 @@
 set -euo pipefail
 shopt -s nullglob
 
-export GREADLINK=readlink
-case $OSTYPE in darwin*) GREADLINK=greadlink;; esac
+export greadlink=readlink
+case $OSTYPE in darwin*) greadlink=greadlink;; esac
 
 # shellcheck source=./.salprojectrc
-${SABA__SOURCED- . "$(dirname "$($GREADLINK -e -- "${BASH_SOURCE[0]}")")"/.salprojectrc}
+${SABA__SOURCED- . "$(dirname "$($greadlink -e -- "${BASH_SOURCE[0]}")")"/.salprojectrc}
 
 cd "$SABA__ROOT"
 
