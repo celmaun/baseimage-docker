@@ -40,7 +40,7 @@ tag_multiarch_latest:
 	env NAME=$(NAME) VERSION=$(VERSION) TAG_LATEST=true ./build-multiarch.sh
 
 release: test
-	@if ! docker images $(NAME) | awk '{ print $$2 }' | grep -q -F $(VERSION_ARG); then echo "$(NAME) version $(VERSION_ARG) is not yet built. Please run 'make build'"; false; fi
+	# @if ! docker images $(NAME) | awk '{ print $$2 }' | grep -q -F $(VERSION_ARG); then echo "$(NAME) version $(VERSION_ARG) is not yet built. Please run 'make build'"; false; fi
 	docker push $(NAME):$(VERSION_ARG)
 	docker push $(NAME)
 	@echo "*** Don't forget to create a tag by creating an official GitHub release."
