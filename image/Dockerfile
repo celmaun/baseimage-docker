@@ -10,17 +10,145 @@ COPY lib/saldrc.lib.sh /
 
 ENV TZ="UTC"
 
-RUN /bd_build/prepare.sh && \
-	/bd_build/system_services.sh && \
-	/bd_build/utilities.sh && \
-	/bd_build/cleanup.sh
+# Following RUN was originally a file: /bd_build/prepare.sh
+RUN \
+set -e ;\
+. /bd_build/buildconfig ;\
+set -x ;\
+#
+## Prevent initramfs updates from trying to run grub and lilo.
+## https://journal.paul.querna.org/articles/2013/10/15/docker-ubuntu-on-rackspace/
+## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=594189
+export INITRD=no ;\
+mkdir -p /etc/container_environment ;\
+printf %s no > /etc/container_environment/INITRD ;\
+#
+## Enable Ubuntu Universe, Multiverse, and deb-src for main.
+sed -i 's/^#\s*\(deb.*main restricted\)$/\1/g' /etc/apt/sources.list ;\
+sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list ;\
+sed -i 's/^#\s*\(deb.*multiverse\)$/\1/g' /etc/apt/sources.list ;\
+apt-get update ;\
+#
+## Fix some issues with APT packages.
+## See https://github.com/dotcloud/docker/issues/1024
+dpkg-divert --local --rename --add /sbin/initctl ;\
+ln -sf /bin/true /sbin/initctl ;\
+#
+## Replace the 'ischroot' tool to make it always return true.
+## Prevent initscripts updates from breaking /dev/shm.
+## https://journal.paul.querna.org/articles/2013/10/15/docker-ubuntu-on-rackspace/
+## https://bugs.launchpad.net/launchpad/+bug/974584
+dpkg-divert --local --rename --add /usr/bin/ischroot ;\
+ln -sf /bin/true /usr/bin/ischroot ;\
+#
+# apt-utils fix for Ubuntu 16.04
+$minimal_apt_get_install apt-utils ;\
+#
+## Install HTTPS support for APT.
+$minimal_apt_get_install apt-transport-https ca-certificates ;\
+#
+## Install add-apt-repository
+$minimal_apt_get_install software-properties-common ;\
+#
+## Upgrade all packages.
+apt-get dist-upgrade -y --no-install-recommends -o Dpkg::Options::="--force-confold" ;\
+#
+## Fix locale.
+case $(lsb_release -is) in \
+  Ubuntu) \
+    $minimal_apt_get_install language-pack-en ;\
+    ;; \
+  Debian) \
+    $minimal_apt_get_install locales locales-all ;\
+    ;; \
+  *) \
+    ;; \
+esac ;\
+locale-gen en_US ;\
+update-locale LANG=en_US.UTF-8 LC_CTYPE=en_US.UTF-8 ;\
+printf %s en_US.UTF-8 > /etc/container_environment/LANG ;\
+printf %s en_US.UTF-8 > /etc/container_environment/LC_CTYPE ;
+
+# Following RUN was originally a file: /bd_build/system_services.sh
+RUN \
+set -e ;\
+. /bd_build/buildconfig ;\
+set -x ;\
+#
+## Install init process.
+cp /bd_build/bin/my_init /sbin/ ;\
+mkdir -p /etc/my_init.d ;\
+mkdir -p /etc/my_init.pre_shutdown.d ;\
+mkdir -p /etc/my_init.post_shutdown.d ;\
+mkdir -p /etc/container_environment ;\
+touch /etc/container_environment.sh ;\
+touch /etc/container_environment.json ;\
+chmod 700 /etc/container_environment ;\
+#
+groupadd -g 8377 docker_env ;\
+chown :docker_env /etc/container_environment.sh /etc/container_environment.json ;\
+chmod 640 /etc/container_environment.sh /etc/container_environment.json ;\
+ln -s /etc/container_environment.sh /etc/profile.d/ ;\
+#
+## Install runit.
+$minimal_apt_get_install runit ;\
+#
+## Install a syslog daemon and logrotate.
+[ "$DISABLE_SYSLOG" -eq 0 ] && /bd_build/services/syslog-ng/syslog-ng.sh || true ;\
+#
+## Install the SSH server.
+[ "$DISABLE_SSH" -eq 0 ] && /bd_build/services/sshd/sshd.sh || true ;\
+#
+## Install cron daemon.
+[ "$DISABLE_CRON" -eq 0 ] && /bd_build/services/cron/cron.sh || true ;
+
+# Following RUN was originally a file: /bd_build/utilities.sh
+RUN \
+set -e ;\
+. /bd_build/buildconfig ;\
+set -x ;\
+#
+## Often used tools.
+$minimal_apt_get_install wget curl less psmisc gpg-agent dirmngr ;\
+#
+if [ "${BUILT_IMAGE_SIZE:?}" = "thin" ]; then \
+	$minimal_apt_get_install vim-tiny ;\
+	ln -s /usr/bin/vim.tiny /usr/bin/vim ;\
+else \
+	apt-get install -y vim ;\
+	test -e /usr/bin/vim || ln -s /usr/bin/vim.basic /usr/bin/vim ;\
+fi ;\
+##
+update-alternatives --install /usr/bin/editor editor /usr/bin/vim 100 ;\
+#
+## This tool runs a command as another user and sets $HOME.
+cp /bd_build/bin/setuser /sbin/setuser ;\
+#
+## This tool allows installation of apt packages with automatic cache cleanup.
+cp /bd_build/bin/install_clean /sbin/install_clean ;
+
+# Following RUN was originally a file: /bd_build/cleanup.sh
+RUN \
+set -e; \
+. /bd_build/buildconfig; \
+set -x; \
+#
+apt-get clean; \
+find /bd_build/ -not \( -name 'bd_build' -or -name 'buildconfig' -or -name 'cleanup.sh' \) -delete; \
+rm -rf /tmp/* /var/tmp/*; \
+rm -rf /var/lib/apt/lists/*; \
+#
+# clean up python bytecode
+find / -mount -name '*.pyc' -delete; \
+find / -mount -name '*__pycache__*' -delete; \
+#
+rm -f /etc/ssh/ssh_host_*;
 
 ENV DEBIAN_FRONTEND="teletype" \
     LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
     LC_ALL="en_US.UTF-8" \
     EDITOR="/usr/bin/vim"
-
 
 # SSH
 EXPOSE 22
@@ -142,4 +270,8 @@ RUN \
 	# Note by Salman: Best syntax highlighting package is 'bat'
 	saldrc__apt_install file bat mediainfo libimage-exiftool-perl; \
     pip3 --no-input install -U ranger-fm chardet pygments python-bidi
+
+ONBUILD RUN \
+	. /saldrc.lib.sh; \
+	echo "Sam says hi! Thanks for building on my base image my dude :)"
 
