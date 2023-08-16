@@ -37,7 +37,7 @@ saldrc__apt_setup() (
     printf '%s\n' 'APT::Update::Post-Invoke-Success {"touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";};' > ./15update-stamp
   fi
 
-
+  # https://docs.docker.com/engine/reference/builder/#example-cache-apt-packages
   if [ -e ./99zsal-keep-cache ]; then :; else
     printf '%s\n' 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > ./99zsal-keep-cache;
   fi
