@@ -107,9 +107,16 @@ def export_envvars(to_dir=True):
         return
     shell_dump = ""
     env_dump = ""
+
+    # https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html
+    # https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html
     for name, value in os.environ.items():
-        if name in ['HOME', 'USER', 'GROUP', 'UID', 'EUID', 'GID', 'SHELL', 'PWD']:
+        if name in ['HOME', 'LOGNAME', 'USER', 'GROUP', 'UID', 'EUID', 'GID', 'SHELL', 'PWD', 'OLDPWD', 'CDPATH', 'LDFLAGS']:
             continue
+
+        if name in ['MAIL', 'MAILCHECK', 'MAILER', 'MAILPATH', 'MAILRC']:
+            continue
+
         if to_dir:
             with open("/etc/container_environment/" + name, "w") as f:
                 f.write(value)
@@ -117,8 +124,15 @@ def export_envvars(to_dir=True):
         shell_dump += "export " + sanitize_shenvname(name) + "=" + shquote(value) + "\n"
 
         # Locale-related env vars are problematic (e.g., during SSH) when set in /etc/environment or ~/.ssh/environment
+
+        # https://unix.stackexchange.com/questions/4859/visual-vs-editor-what-s-the-difference#answer-286514
+        # Some tools only accept EDITOR, for example the shell builtin fc:
+        # -e ENAME  select which editor to use.  Default is FCEDIT, then EDITOR, then vi
+
         if (
-            name not in ['LANG', 'LANGUAGE', 'TERM']
+            name not in ['LANG', 'LANGUAGE', 'CHARSET', 'NLSPATH', 'TZ']
+            and name not in ['TERM', 'TERMCAP', 'TERMINFO']
+            and name not in ['FCEDIT', 'VISUAL', 'EDITOR', 'MORE', 'PAGER']
             and not name.startswith('_')
             and not re.fullmatch(r'LC_[A-Z]+', name)
         ):
@@ -127,6 +141,7 @@ def export_envvars(to_dir=True):
     with open("/etc/container_environment.sh", "w") as f:
         f.write(shell_dump)
     with open("/etc/container_environment.env", "w") as f:
+        # @TODO: Prepend contents of `/etc/environment` (PATH env var)
         f.write(env_dump)
     with open("/etc/container_environment.json", "w") as f:
         f.write(json.dumps(dict(os.environ)))
