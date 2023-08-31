@@ -106,15 +106,28 @@ def export_envvars(to_dir=True):
     if not os.path.exists("/etc/container_environment"):
         return
     shell_dump = ""
+    env_dump = ""
     for name, value in os.environ.items():
-        if name in ['HOME', 'USER', 'GROUP', 'UID', 'GID', 'SHELL']:
+        if name in ['HOME', 'USER', 'GROUP', 'UID', 'EUID', 'GID', 'SHELL', 'PWD']:
             continue
         if to_dir:
             with open("/etc/container_environment/" + name, "w") as f:
                 f.write(value)
+
         shell_dump += "export " + sanitize_shenvname(name) + "=" + shquote(value) + "\n"
+
+        # Locale-related env vars are problematic (e.g., during SSH) when set in /etc/environment or ~/.ssh/environment
+        if (
+            name not in ['LANG', 'LANGUAGE', 'TERM']
+            and not name.startswith('_')
+            and not re.fullmatch(r'LC_[A-Z]+', name)
+        ):
+            env_dump += sanitize_shenvname(name) + "=" + shquote(value) + "\n"
+
     with open("/etc/container_environment.sh", "w") as f:
         f.write(shell_dump)
+    with open("/etc/container_environment.env", "w") as f:
+        f.write(env_dump)
     with open("/etc/container_environment.json", "w") as f:
         f.write(json.dumps(dict(os.environ)))
 
@@ -296,8 +309,8 @@ def start_runit():
 
 
 def wait_for_runit_or_interrupt(pid):
-	status = waitpid_reap_other_children(pid)
-	return (True, status)
+    status = waitpid_reap_other_children(pid)
+    return (True, status)
 
 
 def shutdown_runit_services(quiet=False):
