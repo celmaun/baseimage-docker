@@ -65,7 +65,9 @@ make VERSION="$VERSION" PLATFORM="linux/arm64,linux/amd64" build
 make VERSION="$VERSION" tag_latest
 make VERSION="$VERSION" release
 
-git tag "$VERSION"
+git tag -a -m "Released $VERSION" "$VERSION"
+
+#git push origin "$VERSION"
 
 # `--follow-tags` is required to push the new tag
 git push --follow-tags
