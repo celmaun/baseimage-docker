@@ -111,7 +111,10 @@ def export_envvars(to_dir=True):
     # https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html
     # https://www.gnu.org/software/libc/manual/html_node/Standard-Environment.html
     for name, value in os.environ.items():
-        if name in ['HOME', 'LOGNAME', 'USER', 'GROUP', 'UID', 'EUID', 'GID', 'SHELL', 'PWD', 'OLDPWD', 'CDPATH', 'LDFLAGS']:
+        if name in ['HOME', 'LOGNAME', 'USER', 'GROUP', 'UID', 'EUID', 'GID']:
+            continue
+
+        if name in ['POSIXLY_CORRECT', 'SHELL', 'PWD', 'OLDPWD', 'CDPATH', 'LDFLAGS']:
             continue
 
         if name in ['MAIL', 'MAILCHECK', 'MAILER', 'MAILPATH', 'MAILRC']:
