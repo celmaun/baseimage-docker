@@ -48,10 +48,9 @@ RUN \
     saldrc__apt_setup ;\
     #
     ## Enable Ubuntu Universe, Multiverse, and deb-src for main.
-    for x in 'main restricted' 'universe' 'multiverse'; do \
-      sed -i "s/^#\s*\(deb.*$x\)$/\1/g" /etc/apt/sources.list ;\
-    done \
-    #
+    sed -i 's/^#\s*\(deb.*main restricted\)$/\1/g' /etc/apt/sources.list ;\
+    sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list ;\
+    sed -i 's/^#\s*\(deb.*multiverse\)$/\1/g' /etc/apt/sources.list ;\
     saldrc__apt_update ;\
     #
     ## Fix some issues with APT packages.
