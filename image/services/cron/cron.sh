@@ -1,9 +1,7 @@
 #!/bin/bash
-set -e
-source /bd_build/buildconfig
-set -x
+set -eu; . /saldrc.lib.sh; set -x;
 
-$minimal_apt_get_install cron
+saldrc__apt_install cron
 mkdir /etc/service/cron
 chmod 600 /etc/crontab
 cp /bd_build/services/cron/cron.runit /etc/service/cron/run
