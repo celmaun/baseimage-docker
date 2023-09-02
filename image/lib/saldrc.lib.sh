@@ -52,7 +52,7 @@ saldrc__apt_update_maybe () {
      [ -n "$(find -L /var/lib/apt/periodic/update-success-stamp -maxdepth 0 -mtime -7 -print -quit 2>/dev/null ||:)" ] && \
      # Check no config file in /etc/apt is newer/modified later than the update-success file
      [ -z "$(find -L /etc/apt -type f -newer /var/lib/apt/periodic/update-success -print -quit 2>&1 ||:)" ] && \
-     [ -n "$(find -L /var/lib/apt/lists -type f -maxdepth 0 -mtime -7 \! -empty -print -quit 2>/dev/null ||:)" ] \
+     [ -n "$(find -L /var/lib/apt/lists -maxdepth 0 -mtime -7 \! -empty -print -quit 2>/dev/null ||:)" ] \
   ; then
     return
   fi
