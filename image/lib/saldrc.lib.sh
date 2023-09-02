@@ -4,7 +4,6 @@
 
 # NOTE: No Bash-isms allowed, this file must be POSIX (and `dash``) compatible
 
-
 # This is more reliable as functions are not always exported(???) and `source`ing again is needed
 if PATH='' command -v _saldrc__loaded >/dev/null; then return; fi
 
@@ -52,15 +51,14 @@ saldrc__apt_update_maybe () {
 
   # Cache is older than 7 days
   >&2 printf '%s\n' "Refreshing APT cache..."
-  apt-get update
+  DEBIAN_FRONTEND=noninteractive apt-get update
 }
 
 saldrc__apt_install() {
   saldrc__apt_update_maybe || return
 
-  apt-get -y install --no-install-recommends "$@"
+  DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends "$@"
 }
-
 
 saldrc__apt_file_update_maybe() {
   # shellcheck disable=SC2227
@@ -70,7 +68,7 @@ saldrc__apt_file_update_maybe() {
 
   # Cache is older than 7 days
   >&2 printf '%s\n' "Refreshing apt-file cache..."
-  apt-file update
+  DEBIAN_FRONTEND=noninteractive apt-file update
 }
 
 # 1 = sha256 hash
