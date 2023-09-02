@@ -7,7 +7,7 @@
 # This is more reliable as functions are not always exported(???) and `source`ing again is needed
 if PATH='' command -v _saldrc__loaded >/dev/null; then return; fi
 
-: X$-; REPLY="${_##*a*}"; set -a
+REPLY="X$-"; REPLY="${REPLY##*a*}"; set -a
 
 _saldrc__loaded() { true; }
 
@@ -40,6 +40,11 @@ saldrc__apt_setup() (
   fi
 )
 
+saldrc__apt_update() {
+  >&2 printf '%s\n' "Refreshing APT cache..."
+  DEBIAN_FRONTEND=noninteractive apt-get update
+}
+
 # Only `apt-get update` if cache older than a week
 # https://askubuntu.com/questions/410247/how-to-know-last-time-apt-get-update-was-executed#answer-904259
 saldrc__apt_update_maybe () {
@@ -52,6 +57,13 @@ saldrc__apt_update_maybe () {
   # Cache is older than 7 days
   >&2 printf '%s\n' "Refreshing APT cache..."
   DEBIAN_FRONTEND=noninteractive apt-get update
+}
+
+saldrc__apt_dist_upgrade() {
+  saldrc__apt_update_maybe || return
+
+  ## Upgrade all packages.
+  DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y --no-install-recommends -o Dpkg::Options::="--force-confold"
 }
 
 saldrc__apt_install() {
