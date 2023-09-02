@@ -128,13 +128,6 @@ cp /bd_build/bin/setuser /sbin/setuser ;\
 ## This tool allows installation of apt packages with automatic cache cleanup.
 cp /bd_build/bin/install_clean /sbin/install_clean ;
 
-
-ENV DEBIAN_FRONTEND="teletype" \
-    LANG="en_US.UTF-8" \
-    LANGUAGE="en_US:en" \
-    LC_ALL="en_US.UTF-8" \
-    EDITOR="/usr/bin/vim"
-
 ENV PIP_CACHE_DIR=/var/cache/pip
 
 # Enable apt caching as we intend to use --mount=cache
@@ -260,16 +253,28 @@ RUN \
     find / -mount -name '*__pycache__*' -delete ;\
     :;
 
+ENV LANG="en_US.UTF-8" \
+    LANGUAGE="en_US:en" \
+    LC_ALL="en_US.UTF-8"
+
 # Use baseimage-docker's init system.
 CMD ["/sbin/my_init"]
 
 ONBUILD RUN \
 	set -eu; . /saldrc.lib.sh; ;\
-	>&2 printf '%s\n' "Sam says hi! Thanks for building on my base image. :)" ;\
-	>&2 printf '%s\n' "Please remember to append the following instructions to your Dockerfile (modify as you see fit):" ;\
+	>&2 printf '%s\n' "# Sam says hi! Thanks for building on my base image. :)" ;\
+	>&2 printf '%s\n' "# Please remember to append the following instructions to your Dockerfile (modify as you see fit):" ;\
+    >&2 printf '\t\n' ;\
+	>&2 printf '\t%s\n' '# Sets APT package manager interactive behavior.' ;\
+	>&2 printf '\t%s\n' 'ENV DEBIAN_FRONTEND="teletype"' ;\
+    >&2 printf '\t\n' ;\
+	>&2 printf '\t%s\n' '# Sets the default file editor.' ;\
+	>&2 printf '\t%s\n' 'ENV EDITOR="/usr/bin/vim"' ;\
+    >&2 printf '\t\n' ;\
     >&2 printf '\t\n' ;\
 	>&2 printf '\t%s\n' '# SSH' ;\
 	>&2 printf '\t%s\n' 'EXPOSE 22' ;\
+    >&2 printf '\t\n' ;\
     >&2 printf '\t\n' ;\
     >&2 printf '\t%s\n' '# SSHD keys' ;\
     >&2 printf '\t%s\n' 'VOLUME /var/sshd_host_keys' ;\
