@@ -69,6 +69,8 @@ saldrc__apt_dist_upgrade() {
 saldrc__apt_install() {
   saldrc__apt_update_maybe || return
 
+  # Use --fix-missing if geting checksum errors
+  # DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends --fix-missing "$@"
   DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends "$@"
 }
 
