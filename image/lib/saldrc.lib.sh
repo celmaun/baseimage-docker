@@ -6,13 +6,11 @@
 
 
 # This is more reliable as functions are not always exported(???) and `source`ing again is needed
-if PATH='' command -v saldrc__loaded >/dev/null; then return; fi
+if PATH='' command -v _saldrc__loaded >/dev/null; then return; fi
 
-set -eu
+: X$-; REPLY="${_##*a*}"; set -a
 
-case $- in *a*) ;; *) _saldrc__un_set="set +a"; set -a;; esac
-
-saldrc__loaded() { true; }
+_saldrc__loaded() { true; }
 
 saldrc__validate_build_args() {
   : "${SAL__ENV:?'Build arg $SAL__ENV is required'}" || return
@@ -98,7 +96,5 @@ saldrc__sha256_check() {
 }
 
 
-${_saldrc__un_set-}
+${REPLY:+ set +a}
 
-
-set -x
