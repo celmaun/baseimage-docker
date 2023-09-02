@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=ubuntu:jammy
 FROM $BASE_IMAGE
 
-#ARG QEMU_ARCH
+ARG QEMU_ARCH
 #ADD x86_64_qemu-${QEMU_ARCH}-static.tar.gz /usr/bin
 
 COPY . /bd_build
@@ -10,12 +10,33 @@ COPY lib/saldrc.lib.sh /
 
 ENV TZ="UTC"
 
+ENV PIP_CACHE_DIR=/var/cache/pip
+
+# Enable apt caching as we intend to use --mount=cache
+# https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md#example-cache-apt-packages
+# https://github.com/moby/buildkit/blob/87e1fa7/frontend/dockerfile/docs/syntax.md#example-cache-apt-package
+
+# Ubuntu non-Docker comes with a /etc/apt/apt.conf.d/15update-stamp file that's handy to determine when `apt-get update` was last run.
+# https://serverfault.com/questions/20747/find-last-time-update-was-performed-with-apt-get#answer-425237
+# We restore it when missing
+# APT::Update::Post-Invoke-Success {"touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";};
+
+RUN \
+    set -eu; . /saldrc.lib.sh; set -x; \
+    # saldrc__validate_build_args; \
+    mkdir -p "$PIP_CACHE_DIR"; \
+    chmod -R a+rX "$PIP_CACHE_DIR"; \
+    mkdir -p /saba-cache/; \
+    chmod -R a+rwX /saba-cache/ ;\
+    :;
+
+
 # Following RUN was originally a file: /bd_build/prepare.sh
 RUN \
-set -e ;\
-. /bd_build/buildconfig ;\
-set -x ;\
-#
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/saba-cache,sharing=locked,mode=0777 \
+set -eu; . /saldrc.lib.sh; set -x; \
 ## Prevent initramfs updates from trying to run grub and lilo.
 ## https://journal.paul.querna.org/articles/2013/10/15/docker-ubuntu-on-rackspace/
 ## http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=594189
@@ -23,11 +44,14 @@ export INITRD=no ;\
 mkdir -p /etc/container_environment ;\
 printf %s no > /etc/container_environment/INITRD ;\
 #
+## Setup APT
+saldrc__apt_setup ;\
+#
 ## Enable Ubuntu Universe, Multiverse, and deb-src for main.
 sed -i 's/^#\s*\(deb.*main restricted\)$/\1/g' /etc/apt/sources.list ;\
 sed -i 's/^#\s*\(deb.*universe\)$/\1/g' /etc/apt/sources.list ;\
 sed -i 's/^#\s*\(deb.*multiverse\)$/\1/g' /etc/apt/sources.list ;\
-apt-get update ;\
+saldrc__apt_update ;\
 #
 ## Fix some issues with APT packages.
 ## See https://github.com/dotcloud/docker/issues/1024
@@ -42,28 +66,19 @@ dpkg-divert --local --rename --add /usr/bin/ischroot ;\
 ln -sf /bin/true /usr/bin/ischroot ;\
 #
 # apt-utils fix for Ubuntu 16.04
-$minimal_apt_get_install apt-utils ;\
+saldrc__apt_install apt-utils ;\
 #
 ## Install HTTPS support for APT.
-$minimal_apt_get_install apt-transport-https ca-certificates ;\
+saldrc__apt_install apt-transport-https ca-certificates ;\
 #
 ## Install add-apt-repository
-$minimal_apt_get_install software-properties-common ;\
+saldrc__apt_install software-properties-common ;\
 #
 ## Upgrade all packages.
-apt-get dist-upgrade -y --no-install-recommends -o Dpkg::Options::="--force-confold" ;\
+saldrc__apt_dist_upgrade ;\
 #
 ## Fix locale.
-case $(lsb_release -is) in \
-  Ubuntu) \
-    $minimal_apt_get_install language-pack-en ;\
-    ;; \
-  Debian) \
-    $minimal_apt_get_install locales locales-all ;\
-    ;; \
-  *) \
-    ;; \
-esac ;\
+saldrc__apt_install language-pack-en ;\
 locale-gen en_US ;\
 update-locale LANG=en_US.UTF-8 LC_CTYPE=en_US.UTF-8 ;\
 printf %s en_US.UTF-8 > /etc/container_environment/LANG ;\
@@ -71,9 +86,10 @@ printf %s en_US.UTF-8 > /etc/container_environment/LC_CTYPE ;
 
 # Following RUN was originally a file: /bd_build/system_services.sh
 RUN \
-set -e ;\
-. /bd_build/buildconfig ;\
-set -x ;\
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/saba-cache,sharing=locked,mode=0777 \
+set -eu; . /saldrc.lib.sh; set -x; \
 #
 ## Install init process.
 cp /bd_build/bin/my_init /sbin/ ;\
@@ -92,34 +108,28 @@ chmod 640 /etc/container_environment.sh /etc/container_environment.env /etc/cont
 ln -s /etc/container_environment.sh /etc/profile.d/ ;\
 #
 ## Install runit.
-$minimal_apt_get_install runit ;\
+saldrc__apt_install runit ;\
 #
 ## Install a syslog daemon and logrotate.
-[ "$DISABLE_SYSLOG" -eq 0 ] && /bd_build/services/syslog-ng/syslog-ng.sh || true ;\
+/bd_build/services/syslog-ng/syslog-ng.sh ;\
 #
 ## Install the SSH server.
-[ "$DISABLE_SSH" -eq 0 ] && /bd_build/services/sshd/sshd.sh || true ;\
+/bd_build/services/sshd/sshd.sh ;\
 #
 ## Install cron daemon.
-[ "$DISABLE_CRON" -eq 0 ] && /bd_build/services/cron/cron.sh || true ;
+/bd_build/services/cron/cron.sh ;
 
 # Following RUN was originally a file: /bd_build/utilities.sh
 RUN \
-set -e ;\
-. /bd_build/buildconfig ;\
-set -x ;\
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/saba-cache,sharing=locked,mode=0777 \
+set -eu; . /saldrc.lib.sh; set -x; \
 #
 ## Often used tools.
-$minimal_apt_get_install wget curl less psmisc gpg-agent dirmngr ;\
-#
-if [ "${BUILT_IMAGE_SIZE:?}" = "thin" ]; then \
-	$minimal_apt_get_install vim-tiny ;\
-	ln -s /usr/bin/vim.tiny /usr/bin/vim ;\
-else \
-	apt-get install -y vim ;\
-	test -e /usr/bin/vim || ln -s /usr/bin/vim.basic /usr/bin/vim ;\
-fi ;\
+saldrc__apt_install wget curl less psmisc gpg-agent dirmngr vim ;\
 ##
+test -e /usr/bin/vim || ln -s /usr/bin/vim.basic /usr/bin/vim ;\
 update-alternatives --install /usr/bin/editor editor /usr/bin/vim 100 ;\
 #
 ## This tool runs a command as another user and sets $HOME.
@@ -128,25 +138,6 @@ cp /bd_build/bin/setuser /sbin/setuser ;\
 ## This tool allows installation of apt packages with automatic cache cleanup.
 cp /bd_build/bin/install_clean /sbin/install_clean ;
 
-ENV PIP_CACHE_DIR=/var/cache/pip
-
-# Enable apt caching as we intend to use --mount=cache
-# https://github.com/moby/buildkit/blob/master/frontend/dockerfile/docs/syntax.md#example-cache-apt-packages
-# https://github.com/moby/buildkit/blob/87e1fa7/frontend/dockerfile/docs/syntax.md#example-cache-apt-package
-
-# Ubuntu non-Docker comes with a /etc/apt/apt.conf.d/15update-stamp file that's handy to determine when `apt-get update` was last run.
-# https://serverfault.com/questions/20747/find-last-time-update-was-performed-with-apt-get#answer-425237
-# We restore it when missing
-# APT::Update::Post-Invoke-Success {"touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";};
-
-RUN \
-    set -eu; . /saldrc.lib.sh; set -x; \
-    # saldrc__validate_build_args; \
-    saldrc__apt_setup; \
-    mkdir -p "$PIP_CACHE_DIR"; \
-    chmod -R a+rX "$PIP_CACHE_DIR"; \
-    mkdir -p /saba-cache/; \
-    chmod -R a+rwX /saba-cache/;
 
 RUN \
     set -eu; . /saldrc.lib.sh; set -x; \
@@ -240,9 +231,9 @@ RUN \
 
 # Following RUN was originally a file: /bd_build/cleanup.sh
 RUN \
-    set -eu; . /bd_build/buildconfig; set -x; ;\
+    set -eux; export LC_ALL="C" ;\
     #
-    apt-get clean ;\
+    DEBIAN_FRONTEND=noninteractive apt-get clean ;\
     find /bd_build/ -not \( -name 'bd_build' -or -name 'buildconfig' -or -name 'cleanup.sh' \) -delete ;\
     rm -rf /tmp/* /var/tmp/* ;\
     rm -rf /var/lib/apt/lists/* ;\
@@ -250,8 +241,7 @@ RUN \
     rm -f /etc/ssh/ssh_host_* ;\
     # clean up python bytecode
     find / -mount -name '*.pyc' -delete ;\
-    find / -mount -name '*__pycache__*' -delete ;\
-    :;
+    find / -mount -name '*__pycache__*' -delete ;
 
 ENV LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
