@@ -1,7 +1,7 @@
 ARG BASE_IMAGE=ubuntu:jammy
 FROM $BASE_IMAGE
 
-ARG QEMU_ARCH
+#ARG QEMU_ARCH
 #ADD x86_64_qemu-${QEMU_ARCH}-static.tar.gz /usr/bin
 
 COPY . /bd_build
@@ -128,39 +128,12 @@ cp /bd_build/bin/setuser /sbin/setuser ;\
 ## This tool allows installation of apt packages with automatic cache cleanup.
 cp /bd_build/bin/install_clean /sbin/install_clean ;
 
-# Following RUN was originally a file: /bd_build/cleanup.sh
-RUN \
-set -e; \
-. /bd_build/buildconfig; \
-set -x; \
-#
-apt-get clean; \
-find /bd_build/ -not \( -name 'bd_build' -or -name 'buildconfig' -or -name 'cleanup.sh' \) -delete; \
-rm -rf /tmp/* /var/tmp/*; \
-rm -rf /var/lib/apt/lists/*; \
-#
-# clean up python bytecode
-find / -mount -name '*.pyc' -delete; \
-find / -mount -name '*__pycache__*' -delete; \
-#
-rm -f /etc/ssh/ssh_host_*;
 
 ENV DEBIAN_FRONTEND="teletype" \
     LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
     LC_ALL="en_US.UTF-8" \
     EDITOR="/usr/bin/vim"
-
-# SSH
-EXPOSE 22
-
-# SSHD keys
-VOLUME ["/var/sshd_host_keys"]
-# Superuser SSH data
-VOLUME ["/root/.ssh"]
-
-# Use baseimage-docker's init system.
-CMD ["/sbin/my_init"]
 
 ENV PIP_CACHE_DIR=/var/cache/pip
 
@@ -174,7 +147,7 @@ ENV PIP_CACHE_DIR=/var/cache/pip
 # APT::Update::Post-Invoke-Success {"touch /var/lib/apt/periodic/update-success-stamp 2>/dev/null || true";};
 
 RUN \
-    . /saldrc.lib.sh; \
+    set -eu; . /saldrc.lib.sh; set -x; \
     # saldrc__validate_build_args; \
     saldrc__apt_setup; \
     mkdir -p "$PIP_CACHE_DIR"; \
@@ -183,7 +156,7 @@ RUN \
     chmod -R a+rwX /saba-cache/;
 
 RUN \
-    . /saldrc.lib.sh; \
+    set -eu; . /saldrc.lib.sh; set -x; \
     # Enabling SSH
     # https://github.com/phusion/baseimage-docker#enabling-ssh
     # Baseimage-docker disables the SSH server by default. Add the following to your Dockerfile to enable it:
@@ -196,8 +169,8 @@ RUN \
 RUN \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    --mount=type=cache,target=/saba-cache,mode=0777 \
-    . /saldrc.lib.sh; \
+    --mount=type=cache,target=/saba-cache,sharing=locked,mode=0777 \
+    set -eu; . /saldrc.lib.sh; set -x; \
     saldrc__apt_install \
         vim \
         git \
@@ -225,8 +198,8 @@ RUN \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     --mount=type=cache,target=/var/cache/pip,sharing=locked \
-    --mount=type=cache,target=/saba-cache,mode=0777 \
-    . /saldrc.lib.sh; \
+    --mount=type=cache,target=/saba-cache,sharing=locked,mode=0777 \
+    set -eu; . /saldrc.lib.sh; set -x; \
     saldrc__apt_install python3 python3-pip; \
 	# Ensure pip, setuptools, and wheel are up to date \
 	# While pip alone is sufficient to install from pre-built binary archives, up to date copies of the setuptools and wheel projects are
@@ -269,10 +242,39 @@ RUN \
 	# * `openscad` for 3D model previews (`stl`, `off`, `dxf`, `scad`, `csg`)
 	# ----
 	# Note by Salman: Best syntax highlighting package is 'bat'
-	saldrc__apt_install file bat mediainfo libimage-exiftool-perl; \
+	saldrc__apt_install file bat mediainfo libimage-exiftool-perl ;\
     pip3 --no-input install -U ranger-fm chardet pygments python-bidi
 
-ONBUILD RUN \
-	. /saldrc.lib.sh; \
-	echo "Sam says hi! Thanks for building on my base image my dude :)"
+# Following RUN was originally a file: /bd_build/cleanup.sh
+RUN \
+    set -eu; . /bd_build/buildconfig; set -x; ;\
+    #
+    apt-get clean ;\
+    find /bd_build/ -not \( -name 'bd_build' -or -name 'buildconfig' -or -name 'cleanup.sh' \) -delete ;\
+    rm -rf /tmp/* /var/tmp/* ;\
+    rm -rf /var/lib/apt/lists/* ;\
+    #
+    rm -f /etc/ssh/ssh_host_* ;\
+    # clean up python bytecode
+    find / -mount -name '*.pyc' -delete ;\
+    find / -mount -name '*__pycache__*' -delete ;\
+    :;
 
+# Use baseimage-docker's init system.
+CMD ["/sbin/my_init"]
+
+ONBUILD RUN \
+	set -eu; . /saldrc.lib.sh; ;\
+	>&2 printf '%s\n' "Sam says hi! Thanks for building on my base image. :)" ;\
+	>&2 printf '%s\n' "Please remember to append the following instructions to your Dockerfile (modify as you see fit):" ;\
+    >&2 printf '\t\n' ;\
+	>&2 printf '\t%s\n' '# SSH' ;\
+	>&2 printf '\t%s\n' 'EXPOSE 22' ;\
+    >&2 printf '\t\n' ;\
+    >&2 printf '\t%s\n' '# SSHD keys' ;\
+    >&2 printf '\t%s\n' 'VOLUME /var/sshd_host_keys' ;\
+    >&2 printf '\t\n' ;\
+    >&2 printf '\t%s\n' '# Superuser SSH configuration' ;\
+    >&2 printf '\t%s\n' 'VOLUME /root/.ssh' ;\
+    >&2 printf '\t\n' ;\
+    :;
