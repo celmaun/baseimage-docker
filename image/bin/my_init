@@ -106,6 +106,8 @@ def export_envvars(to_dir=True):
     if not os.path.exists("/etc/container_environment"):
         return
     shell_dump = ""
+    shell_defaults_dump = ""
+    shell_fill_defaults_dump = ""
     env_dump = ""
 
     # https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html
@@ -124,7 +126,10 @@ def export_envvars(to_dir=True):
             with open("/etc/container_environment/" + name, "w") as f:
                 f.write(value)
 
-        shell_dump += "export " + sanitize_shenvname(name) + "=" + shquote(value) + "\n"
+        sanitized_name=sanitize_shenvname(name)
+        shell_dump += "export " + sanitized_name + "=" + shquote(value) + "\n"
+        shell_defaults_dump += 'export %s="${%s-%s}"\n' % ( sanitized_name, sanitized_name, shquote(value) )
+        shell_fill_defaults_dump += 'export %s="${%s:-%s}"\n' % ( sanitized_name, sanitized_name, shquote(value) )
 
         # Locale-related env vars are problematic (e.g., during SSH) when set in /etc/environment or ~/.ssh/environment
 
@@ -143,6 +148,10 @@ def export_envvars(to_dir=True):
 
     with open("/etc/container_environment.sh", "w") as f:
         f.write(shell_dump)
+    with open("/etc/container_environment_defaults.sh", "w") as f:
+        f.write(shell_defaults_dump)
+    with open("/etc/container_environment_fill_defaults.sh", "w") as f:
+        f.write(shell_fill_defaults_dump)
     with open("/etc/container_environment.env", "w") as f:
         # @TODO: Prepend contents of `/etc/environment` (PATH env var)
         f.write(env_dump)
