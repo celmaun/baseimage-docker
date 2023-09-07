@@ -1,3 +1,12 @@
 #!/bin/sh
 set -e
-exec /usr/sbin/sshd -D
+
+exec /usr/sbin/sshd \
+  -o "LogLevel VERBOSE" \
+  -o "Port ${APPCON__PORT__SSH:-22}" \
+  -o "PermitUserEnvironment yes" \
+  -o "PermitRootLogin yes" \
+  -o "PubkeyAuthentication yes" \
+  -o "PasswordAuthentication no" \
+  -o "PermitEmptyPasswords no" \
+  -D
