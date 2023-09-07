@@ -12,14 +12,15 @@ REPLY="X$-"; REPLY="${REPLY##*a*}"; set -a
 _saldrc__loaded() { true; }
 
 saldrc__validate_build_args() {
-  : "${SAL__ENV:?'Build arg $SAL__ENV is required'}" || return
+  : "${APPCON__ENV:?'Build arg $APPCON__ENV is required'}" || return
 
   # Copied values from `man hostnamectl` deployment values and added 'test' because it's commonly used.
-  case $SAL__ENV in development|integration|staging|production|test)
-      return;;
+  case $APPCON__ENV in development|integration|staging|production|test)
+      return
+      ;;
   esac
 
-  >&2 printf '%s\n' "Build arg \$SAL__ENV has invalid value: '$SAL__ENV'"
+  >&2 printf '%s\n' "Build arg \$APPCON__ENV has invalid value: '$APPCON__ENV'"
   return 1
 }
 
