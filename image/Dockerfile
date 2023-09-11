@@ -97,29 +97,29 @@ RUN \
     mkdir -p /etc/my_init.pre_shutdown.d ;\
     mkdir -p /etc/my_init.post_shutdown.d ;\
     mkdir -p /etc/container_environment ;\
-    touch ;\
-        /etc/container_environment.sh ;\
-        /etc/container_environment_defaults.sh ;\
-        /etc/container_environment_fill_defaults.sh ;\
-        /etc/container_environment.env ;\
+    touch \
+        /etc/container_environment.sh \
+        /etc/container_environment_defaults.sh \
+        /etc/container_environment_fill_defaults.sh \
+        /etc/container_environment.env \
         /etc/container_environment.json ;\
     #
     chmod 700 /etc/container_environment ;\
     #
     groupadd -g 8377 docker_env ;\
     #
-    chown :docker_env ;\
-        /etc/container_environment.sh ;\
-        /etc/container_environment_defaults.sh ;\
-        /etc/container_environment_fill_defaults.sh ;\
-        /etc/container_environment.env ;\
+    chown :docker_env \
+        /etc/container_environment.sh \
+        /etc/container_environment_defaults.sh \
+        /etc/container_environment_fill_defaults.sh \
+        /etc/container_environment.env \
         /etc/container_environment.json ;\
         #
-    chmod 640 ;\
-        /etc/container_environment.sh ;\
-        /etc/container_environment_defaults.sh ;\
-        /etc/container_environment_fill_defaults.sh ;\
-        /etc/container_environment.env ;\
+    chmod 640 \
+        /etc/container_environment.sh \
+        /etc/container_environment_defaults.sh \
+        /etc/container_environment_fill_defaults.sh \
+        /etc/container_environment.env \
         /etc/container_environment.json ;\
     #
     ln -s /etc/container_environment.sh /etc/profile.d/ ;\
@@ -261,7 +261,8 @@ RUN \
     find / -mount -name '*.pyc' -delete ;\
     find / -mount -name '*__pycache__*' -delete ;
 
-ENV LANG="en_US.UTF-8" \
+ENV DEBIAN_FRONTEND="teletype" \
+    LANG="en_US.UTF-8" \
     LANGUAGE="en_US:en" \
     LC_ALL="en_US.UTF-8"
 
